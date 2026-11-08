@@ -15,7 +15,7 @@ Signed two's-complement values are packed least-significant bits first. The quan
 
 ## INT1
 
-INT1 stores binary sign values {-1,+1}; zero is not representable. A zero-valued group uses scale 1 and a deterministic positive code. This is highly lossy and must be treated as research-only unless model-level quality proves otherwise.
+INT1 stores binary sign values {-1,+1}; zero is not representable within a non-zero group. A completely zero group receives a zero scale and reconstructs as zero; isolated zero elements in a non-zero group map to the positive sign and reconstruct near the group's scale. This is highly lossy and must be treated as research-only unless model-level quality proves otherwise.
 
 ## Accounting
 
