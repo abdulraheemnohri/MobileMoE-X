@@ -40,3 +40,20 @@ def test_byte_tokenizer_roundtrip():
     tokenizer = ByteTokenizer()
     text = "MiniMoE سلام"
     assert tokenizer.decode(tokenizer.encode(text)) == text
+
+
+
+def test_one_step_train_and_generate(tmp_path):
+    from mobilemoe.generate import generate_text
+    from mobilemoe.train import train
+
+    text_path = tmp_path / "tiny.txt"
+    text_path.write_bytes(("mini moe local training test " * 20).encode("utf-8"))
+    checkpoint = tmp_path / "mini.pt"
+    config = MiniMoEConfig(context_length=8, d_model=16, n_layers=1, n_heads=2,
+                           n_experts=2, experts_per_token=1, d_ff=32)
+    result = train(text_path, checkpoint, steps=1, batch_size=2, config=config)
+    assert checkpoint.is_file()
+    assert result["parameter_count"] > 0
+    generated = generate_text(str(checkpoint), "Hi", max_new_tokens=2, temperature=0)
+    assert generated.startswith("Hi")
