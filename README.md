@@ -1,21 +1,35 @@
-# MobileMoE-X
+# MobileMoE-X — LFM2 Mobile Runtime Track
 
-**Research toolkit for memory-aware Mixture-of-Experts inference on mobile devices.**
+A lightweight, local-first Android deployment project centered on **[litert-community/LFM2-700M](https://huggingface.co/litert-community/LFM2-700M)**.
 
-MobileMoE-X explores how to store and serve an existing MoE checkpoint on constrained devices while preserving its original expert/router semantics. The initial implementation provides a tested, framework-independent reference for grouped INT4, INT2 and binary INT1 tensor quantization. It does **not** claim to convert OLMoE into a mobile runtime or provide a production Android inference engine yet.
+> **Architecture correction:** LFM2-700M is not a Mixture-of-Experts model. It is a hybrid Liquid AI model with short-convolution and grouped-query-attention blocks. This repository now uses the ready-made LiteRT-LM community model instead of treating LFM2 as an MoE checkpoint.
 
-## Project principles
+## Selected model
 
-- Preserve source checkpoint weights; never overwrite the teacher checkpoint.
-- Keep router, expert IDs, routing scores and top-k behavior unchanged.
-- Quantize selected tensor groups into separate artifacts with explicit metadata.
-- Treat INT4 as the first practical candidate; INT2 is experimental; INT1 is highly lossy research-only.
-- Account for scales, padding and metadata when reporting effective storage.
-- Never report simulated performance as measured device performance.
+- Runtime model: `litert-community/LFM2-700M`
+- Base model: `LiquidAI/LFM2-700M`
+- Parameters: 742,489,344 (~742.5M)
+- Architecture: 16 blocks — 10 short-convolution + 6 grouped-query-attention
+- Context length: 32,768 tokens
+- Source precision: BF16
+- License: LFM Open License v1.0 (review license terms before redistribution)
 
-## Quick start
+The model profile is stored at `profiles/lfm2_700m.json`. Model facts are based on the upstream [LiquidAI model card](https://huggingface.co/LiquidAI/LFM2-700M) and [LiteRT community repository](https://huggingface.co/litert-community/LFM2-700M).
 
-Requires Python 3.10+ and NumPy.
+## Current project status
+
+| Component | Status |
+|---|---|
+| LFM2-700M model profile and validation | Implemented |
+| LiteRT-LM community model selection | Configured |
+| Generic INT4 / INT2 / INT1 tensor-format research tools | Implemented; not a LiteRT model converter |
+| Safetensors metadata-only checkpoint inspector | Implemented |
+| Android app and native LiteRT-LM integration | Not implemented |
+| Pixel 6 performance and thermal benchmarks | Not measured |
+
+## Quick start — Python utilities
+
+Python 3.10+ and NumPy are required.
 
 ```bash
 python -m venv .venv
@@ -23,47 +37,43 @@ python -m venv .venv
 # Linux/macOS: source .venv/bin/activate
 python -m pip install -e ".[dev]"
 pytest -q
+mobilemoe show-profile
 ```
 
-Quantize a NumPy tensor saved as `.npy`:
+Quantize a standalone NumPy tensor for format experiments:
 
 ```bash
-mobilemoe quantize input.npy output_dir --bits 4 --group-size 128
+mobilemoe quantize tensor.npy output_dir --bits 4 --group-size 128
 mobilemoe inspect output_dir
-mobilemoe inspect-checkpoint ./local-hf-checkpoint --output inventory.json
 ```
 
-`inspect-checkpoint` reads only `config.json`, an optional safetensors index, and shard headers. It does not load tensor payloads into memory. It validates index-to-shard mappings and reports raw configuration fields and heuristic tensor-name categories. Categories are hints, not proof of tensor roles.
+This generic tensor utility does **not** read or rewrite the LiteRT-LM model file.
 
-The output directory contains packed bytes, per-group scales and a JSON manifest. Original tensors are not modified.
+## Run the selected model
 
-## Formats
+Use the LiteRT-LM installation and execution instructions published with the [community model repository](https://huggingface.co/litert-community/LFM2-700M). The repository's exact artifact filename, CLI arguments and runtime compatibility must be taken from that model revision; MobileMoE-X does not invent or wrap undocumented commands.
 
-| Format | Representation | Status |
-|---|---|---|
-| FP16/BF16 | Source/reference storage | Preserve source artifact; no lossy conversion performed here |
-| INT4 | Signed symmetric grouped quantization | Reference implementation |
-| INT2 | Signed symmetric grouped quantization | Experimental |
-| INT1 | Binary sign plus group scale | Research-only, very lossy |
+## Design principles
 
-INT1 represents values using only -1/+1 and cannot represent zero. INT2/INT1 quality depends heavily on calibration and model architecture. This repository does not claim that these files can be loaded by LiteRT-LM, TFLite, llama.cpp, GGUF or any other runtime.
+- Prefer the already-converted LiteRT-LM model over rebuilding the architecture.
+- Preserve the upstream model and tokenizer files; never overwrite the source.
+- No fake MoE router, expert paging or expert cache: LFM2 is not an MoE model.
+- No model retraining, distillation, pruning or weight modification by default.
+- Keep inference local and offline after the model files are present.
+- Never claim Android support, speed, memory use or battery performance without device measurements.
+- Do not package large model weights inside the APK; use a user-controlled model import/download flow.
 
-## Teacher checkpoint
+## Quantization research formats
 
-The intended research teacher is OLMoE-1B-7B. The actual checkpoint configuration and tensor names must be read from the selected checkpoint at conversion time; do not hard-code architecture assumptions. This toolkit currently accepts individual NumPy tensors, not a full OLMoE checkpoint.
+The generic tensor tools include symmetric grouped INT4, experimental INT2 and research-only binary INT1. These are **not** LiteRT-LM artifact formats and cannot be applied to the community model unless a compatible conversion/export path is implemented and quality-tested. Do not convert or replace the ready-made community artifact with these formats.
 
-## Safety and correctness boundaries
+## Documentation
 
-- No teacher retraining, distillation, pruning, expert merging or router modification.
-- No automatic download of multi-gigabyte model weights.
-- No fabricated Android compatibility or benchmark numbers.
-- A successful quantization round-trip test is not proof of language-model quality.
-- Use only checkpoints and datasets whose licenses permit your intended use.
-
-## Development
-
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/FORMATS.md](docs/FORMATS.md), [docs/ANDROID_PLAN.md](docs/ANDROID_PLAN.md) and [docs/BENCHMARKS.md](docs/BENCHMARKS.md).
+- [Architecture and roadmap](docs/ARCHITECTURE.md)
+- [Android integration plan](docs/ANDROID_PLAN.md)
+- [Quantization format notes](docs/FORMATS.md)
+- [Benchmark protocol](docs/BENCHMARKS.md)
 
 ## License
 
-See [LICENSE](LICENSE).
+The repository's own license is in [LICENSE](LICENSE). The selected model has its own LFM Open License v1.0; those are separate licenses.
