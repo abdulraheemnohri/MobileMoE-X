@@ -44,3 +44,17 @@ def test_storage_report_includes_scale_overhead():
     report = storage_report(artifact)
     assert report["payload_bytes"] == report["packed_bytes"] + report["scale_bytes"]
     assert report["effective_bits_per_value"] > 4
+
+
+
+def test_int1_preserves_sign_and_zero_blocks():
+    source = np.array([-3.0, -0.01, 0.0, 0.01, 2.0, 0.0], dtype=np.float32)
+    artifact = quantize_tensor(source, bits=1, group_size=6)
+    restored = dequantize_tensor(artifact)
+    assert restored[0] < 0
+    assert restored[1] < 0
+    assert restored[2] == 0
+    assert restored[3] > 0
+    assert restored[4] > 0
+    zeros = np.zeros(9, dtype=np.float32)
+    assert np.array_equal(dequantize_tensor(quantize_tensor(zeros, bits=1)), zeros)
