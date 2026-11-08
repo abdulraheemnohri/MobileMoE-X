@@ -60,7 +60,11 @@ def _pack(values: np.ndarray, bits: int) -> np.ndarray:
     if np.any(flat < qmin) or np.any(flat > qmax):
         raise ValueError("quantized values exceed representable symmetric range")
     mask = (1 << bits) - 1
-    encoded = np.bitwise_and(flat, mask).astype(np.uint8)
+    if bits == 1:
+        # Code 0 decodes to +1; code 1 decodes to -1.
+        encoded = (flat < 0).astype(np.uint8)
+    else:
+        encoded = np.bitwise_and(flat, mask).astype(np.uint8)
     out = np.zeros(math.ceil(encoded.size * bits / 8), dtype=np.uint8)
     bit_pos = 0
     for value in encoded:
