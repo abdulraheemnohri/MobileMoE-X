@@ -1,26 +1,22 @@
-# Quantization formats
+# Quantization format notes
 
-## Common layout
+These formats are generic research utilities for standalone numeric tensors. They are **not** the serialization format of `litert-community/LFM2-700M` and must not be used to rewrite the ready-made LiteRT-LM artifact.
 
-Each artifact directory contains:
-- `packed.npy`: packed unsigned bytes in little-endian bit order.
-- `scales.npy`: float32 scale for each contiguous flattened group.
-- `manifest.json`: version, bit width, original shape/count, group size, scheme and storage accounting.
+## Implemented reference formats
 
-This is a research container, not a standardized interchange format. The manifest is required to decode the bytes.
+- INT4: signed symmetric grouped quantization.
+- INT2: signed symmetric grouped quantization; experimental and quality-sensitive.
+- INT1: binary sign quantization; highly lossy and research-only.
+- FP16/BF16: preserve the upstream model artifact as supplied; this package does not convert its runtime representation.
 
-## INT4 and INT2
+## Artifact layout
 
-Signed two's-complement values are packed least-significant bits first. The quantizer uses symmetric ranges {-7..7} for INT4 and {-1..1} for INT2, with one positive scale per group. The unused most-negative code is intentionally not emitted.
+- `packed.npy`: packed unsigned bytes, least-significant bits first.
+- `scales.npy`: float32 scale per contiguous group.
+- `manifest.json`: shape, element count, group size, bit width and version.
 
-## INT1
+The generic packer is not a standardized interchange format. A LiteRT-LM converter would need to support the model's operators, tensor layouts, quantization metadata and runtime kernels explicitly.
 
-INT1 stores binary sign values {-1,+1}; zero is not representable within a non-zero group. A completely zero group receives a zero scale and reconstructs as zero; isolated zero elements in a non-zero group map to the positive sign and reconstruct near the group's scale. This is highly lossy and must be treated as research-only unless model-level quality proves otherwise.
+## Safe use
 
-## Accounting
-
-The effective bits/value calculation includes packed payload and float32 scales. It excludes filesystem/container overhead, JSON metadata and any runtime staging buffers; report those separately in production measurements.
-
-## Endianness and versioning
-
-Bit order is little-endian within each byte. Manifest version 1 is required. Future incompatible changes must increment the version. Do not infer a format from a filename or extension.
+Do not apply INT1/INT2 to the LFM2 checkpoint based only on file-size expectations. First implement a supported model export path, then compare model quality and device performance against the original artifact. Router-specific guidance is irrelevant because LFM2 has no MoE router.
