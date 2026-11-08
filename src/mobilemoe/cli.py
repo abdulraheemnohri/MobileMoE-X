@@ -27,7 +27,7 @@ def build_parser() -> argparse.ArgumentParser:
     checkpoint.add_argument("directory", type=Path)
     checkpoint.add_argument("--output", type=Path, help="write inventory JSON to this path")
     profile = commands.add_parser("show-profile", help="show the bundled LFM2-700M profile")
-    profile.add_argument("--file", type=Path, default=Path(__file__).resolve().parents[2] / "profiles" / "lfm2_700m.json")
+    profile.add_argument("--file", type=Path, default=Path(__file__).resolve().parent / "data" / "lfm2_700m.json")
     return parser
 
 
