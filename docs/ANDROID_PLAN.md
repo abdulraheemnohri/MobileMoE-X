@@ -1,22 +1,38 @@
-# Android runtime plan
+# Android integration plan — LFM2-700M
 
-Target profiles (4/6/8/12/16 GB RAM) are design targets, not compatibility guarantees. Device-specific testing is mandatory.
+## Target
 
-## Runtime requirements
+Android ARM64, starting with a real-device validation on Google Pixel 6. Device compatibility is not guaranteed merely because the model is described as edge-oriented.
 
-- Android ARM64 build with a scalar reference kernel and optimized NEON kernels.
-- Explicitly versioned native artifact reader matching the Python packer.
-- JNI boundary with bounds checking and cancellation.
-- Expert files stored separately; bounded LRU residency and optional prefetch.
-- Memory governor budgets OS reserve, app/runtime, KV cache, temporary unpack buffers, expert cache and safety margin.
-- Preserve exact expert IDs, router scores and top-k selection.
-- No model weights bundled in the APK; user-controlled import/download with disk-space checks.
-- Offline inference after all required assets are available.
+## Runtime
 
-## Integration gate
+Use the published `litert-community/LFM2-700M` LiteRT-LM artifact and its documented runtime API. First inspect the exact repository revision and available artifact files. Do not assume a filename, shell command, JNI API or Android AAR coordinate that is not documented by the model/runtime project.
 
-Do not claim LiteRT-LM/TFLite/llama.cpp compatibility until the selected runtime supports this MoE graph and custom quantized tensor format. A custom runtime or custom operators may be required. Benchmark first on a physical Pixel 6 and additional representative devices.
+## App modules
 
-## UI scope for a future Android client
+- **Model Library:** model ID, revision, file size, checksum, license and installed state.
+- **Chat:** prompt, generated tokens, stop/cancel, conversation reset.
+- **Runtime Settings:** context limit, generation parameters, thread/accelerator options only when supported.
+- **Diagnostics:** runtime version, model load errors, device memory, thermal state and logs.
+- **Storage:** import/download progress, free-space guard, checksum verification and safe deletion.
+- **Privacy:** local conversation storage, clear history and no network use during inference.
 
-Dashboard, model library/import, runtime profile, memory budget, precision policy, chat, download manager, diagnostics, benchmark history, logs and privacy controls. UI must expose real backend state; it must not simulate inference or performance metrics.
+## Resource policy
+
+- Never bundle the model weights in the APK.
+- Check available storage before download/import.
+- Keep context limits configurable; 32K is the model's published context ceiling, not a promise that a phone can run 32K comfortably.
+- Account for app/runtime memory, model buffers, KV cache, temporary allocations and Android OS reserve.
+- Stop generation safely when the app is backgrounded or the user cancels.
+
+## Release gate
+
+Before calling the Android build functional, verify on physical hardware:
+1. model loads from the actual community artifact;
+2. tokenizer and chat template work;
+3. prompt and generation produce non-empty output;
+4. streaming and cancellation work;
+5. offline inference works after assets are installed;
+6. peak memory, latency, thermal behavior and battery impact are recorded.
+
+No fake responses or synthetic benchmark metrics.
