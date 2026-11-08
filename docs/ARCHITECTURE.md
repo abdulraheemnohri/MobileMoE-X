@@ -1,41 +1,32 @@
-# Architecture and implementation status
+# MiniMoE-X architecture
 
-## Selected runtime model
+## v1 model
 
-The default model is `litert-community/LFM2-700M`, based on `LiquidAI/LFM2-700M`. LFM2 is a hybrid edge model, **not an MoE model**. The published 700M configuration has 742,489,344 parameters, 16 blocks (10 short-convolution and 6 grouped-query-attention), 32K context and BF16 source weights.
+MiniMoE-X v1 is a small decoder-only causal language model trained from scratch.
 
-The checked-in profile `profiles/lfm2_700m.json` captures these facts and marks the runtime integration as pending.
+- Byte vocabulary: 256 IDs (each UTF-8 byte maps to one token).
+- Token and learned position embeddings.
+- Four pre-normalized decoder blocks by default.
+- Causal multi-head self-attention.
+- Each block has a learned linear router and four independent two-layer GELU expert MLPs.
+- Top-2 experts are selected per token; their selected probabilities are renormalized and used to combine expert outputs.
+- A load-balancing auxiliary loss is added to next-token cross entropy.
+- Token embedding and language-model output projection weights are tied.
 
-## Runtime-first design
+Default shape: context 256, width 128, 4 layers, 4 heads, 4 experts, top-2, expert width 256. Configuration can be reduced for tests or experimentation.
 
-1. Obtain the exact community LiteRT-LM model revision and review its license and file list.
-2. Use the model's documented LiteRT-LM runtime path; do not re-export it through a different graph converter by default.
-3. Validate tokenizer/chat template and model loading against a known prompt.
-4. Build a thin Android app around the supported runtime API.
-5. Add cancellation, streaming, bounded context, lifecycle handling and model-file integrity checks.
-6. Benchmark on real target devices before setting memory or speed claims.
+## Training and inference
 
-## Existing utilities
+Training reads a local UTF-8 text file as raw bytes, samples next-byte windows and optimizes with AdamW. Checkpoints contain the config, model state and minimal training metadata. Generation uses greedy decoding when temperature is zero, otherwise temperature sampling with optional top-k filtering.
 
-- Grouped INT4/INT2/INT1 quantization for standalone NumPy tensors.
-- Packed tensor serialization with group scales and manifest.
-- Safetensors metadata-only checkpoint inventory.
-- Profile validation and CLI display.
+## Important limitations
 
-The generic quantizer is not a LiteRT-LM converter. The safetensors inspector is for checkpoint inventory and does not load tensor payloads.
+- Byte tokens are robust and easy to implement, but not compute-efficient for natural language.
+- No pretrained knowledge is present; quality depends on data, training compute and evaluation.
+- The initial sparse dispatch implementation is a correctness-oriented PyTorch reference and may be slower than dense MLPs for this tiny model.
+- This is not a production serving runtime and does not implement KV caching yet.
+- No Android APK or native runtime is included in this stage.
 
-## Explicit non-goals for this model
+## Next milestones
 
-- No synthetic MoE router, experts or expert paging.
-- No pruning, expert merging, distillation or teacher retraining.
-- No modification of the published LFM2 checkpoint.
-- No claim that INT1/INT2/INT4 custom artifacts can be consumed by LiteRT-LM.
-
-## Remaining implementation
-
-- Confirm the exact community artifact format, revision, runtime API and license metadata.
-- Add an Android/Kotlin app and native runtime binding against the supported LiteRT-LM API.
-- Implement model download/import, checksum validation, storage checks and offline model registry.
-- Add chat UI with real token streaming and cancellation.
-- Add runtime logs, crash-safe state, memory telemetry and settings.
-- Run integration tests and benchmark on Pixel 6 and other supported devices.
+Model checkpoint format validation, deterministic evaluation, KV-cache inference, INT8/INT4 model export, then native Android runtime. Do not claim compatibility until tested end-to-end.
