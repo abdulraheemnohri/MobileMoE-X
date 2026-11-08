@@ -1,30 +1,41 @@
 # Architecture and implementation status
 
-## Current implemented slice
+## Selected runtime model
 
-The Python reference package accepts a single real-valued NumPy tensor, quantizes it groupwise, packs signed values into a byte stream, stores scales and a versioned JSON manifest, and reconstructs an approximate float32 tensor. It is intended for correctness experiments and format prototyping.
+The default model is `litert-community/LFM2-700M`, based on `LiquidAI/LFM2-700M`. LFM2 is a hybrid edge model, **not an MoE model**. The published 700M configuration has 742,489,344 parameters, 16 blocks (10 short-convolution and 6 grouped-query-attention), 32K context and BF16 source weights.
 
-A metadata-only Hugging Face safetensors inspector reads model configuration, optional shard index and shard headers without loading tensor payloads. It validates header bounds and index mappings, and produces a tensor inventory. Tensor role labels are name-based heuristics only; the actual checkpoint architecture and tensor semantics must be reviewed before selecting tensors for quantization.
+The checked-in profile `profiles/lfm2_700m.json` captures these facts and marks the runtime integration as pending.
 
-## Intended full pipeline
+## Runtime-first design
 
-1. Inspect checkpoint configuration, tensor names, shapes, dtypes and license.
-2. Build a tensor inventory without modifying source files.
-3. Select eligible expert weight tensors; exclude router, normalization and sensitive tensors by default.
-4. Run calibration/evaluation on representative prompts and datasets.
-5. Produce a separate quantized artifact set with checksums and provenance.
-6. Validate numerical error and model-level quality.
-7. Integrate a runtime that explicitly supports the artifact format.
-8. Benchmark on real target hardware before advertising device support.
+1. Obtain the exact community LiteRT-LM model revision and review its license and file list.
+2. Use the model's documented LiteRT-LM runtime path; do not re-export it through a different graph converter by default.
+3. Validate tokenizer/chat template and model loading against a known prompt.
+4. Build a thin Android app around the supported runtime API.
+5. Add cancellation, streaming, bounded context, lifecycle handling and model-file integrity checks.
+6. Benchmark on real target devices before setting memory or speed claims.
 
-## Invariants
+## Existing utilities
 
-- Keep original checkpoint immutable and record its cryptographic hash.
-- Preserve router and top-k semantics exactly.
-- Do not prune, merge or reorder experts.
-- Keep embeddings, normalization, router and attention in a conservative precision until independently validated.
-- Never silently fall back to a different quantization format.
+- Grouped INT4/INT2/INT1 quantization for standalone NumPy tensors.
+- Packed tensor serialization with group scales and manifest.
+- Safetensors metadata-only checkpoint inventory.
+- Profile validation and CLI display.
 
-## Not implemented yet
+The generic quantizer is not a LiteRT-LM converter. The safetensors inspector is for checkpoint inventory and does not load tensor payloads.
 
-Full OLMoE checkpoint import/export, model graph conversion, tokenizer packaging, expert paging, cache scheduler, native ARM kernels, JNI, Android application, LiteRT-LM adapter and on-device inference. These require dedicated integration work and hardware validation; they are not represented by mocks in this repository.
+## Explicit non-goals for this model
+
+- No synthetic MoE router, experts or expert paging.
+- No pruning, expert merging, distillation or teacher retraining.
+- No modification of the published LFM2 checkpoint.
+- No claim that INT1/INT2/INT4 custom artifacts can be consumed by LiteRT-LM.
+
+## Remaining implementation
+
+- Confirm the exact community artifact format, revision, runtime API and license metadata.
+- Add an Android/Kotlin app and native runtime binding against the supported LiteRT-LM API.
+- Implement model download/import, checksum validation, storage checks and offline model registry.
+- Add chat UI with real token streaming and cancellation.
+- Add runtime logs, crash-safe state, memory telemetry and settings.
+- Run integration tests and benchmark on Pixel 6 and other supported devices.
