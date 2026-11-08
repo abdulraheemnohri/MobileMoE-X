@@ -53,7 +53,8 @@ def test_int1_preserves_sign_and_zero_blocks():
     restored = dequantize_tensor(artifact)
     assert restored[0] < 0
     assert restored[1] < 0
-    assert restored[2] == 0
+    # Binary sign quantization cannot preserve isolated zeros in a non-zero group.
+    assert restored[2] > 0
     assert restored[3] > 0
     assert restored[4] > 0
     zeros = np.zeros(9, dtype=np.float32)
