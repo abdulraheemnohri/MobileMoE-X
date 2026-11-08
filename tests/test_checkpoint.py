@@ -9,7 +9,11 @@ from mobilemoe.checkpoint import inspect_checkpoint
 def _write_safetensors(path, tensors):
     header = json.dumps(tensors, separators=(",", ":")).encode("utf-8")
     header += b" " * ((8 - len(header) % 8) % 8)
-    path.write_bytes(struct.pack("<Q", len(header)) + header)
+    data_size = max(
+        (item["data_offsets"][1] for name, item in tensors.items() if name != "__metadata__"),
+        default=0,
+    )
+    path.write_bytes(struct.pack("<Q", len(header)) + header + b"\\x00" * data_size)
 
 
 def test_inspect_checkpoint_headers_only(tmp_path):
