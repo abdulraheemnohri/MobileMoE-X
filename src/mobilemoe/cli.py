@@ -10,6 +10,7 @@ import numpy as np
 from .checkpoint import inspect_checkpoint
 from .io import load_artifact, save_artifact
 from .quantization import quantize_tensor, storage_report
+from .profile import load_profile
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -25,6 +26,8 @@ def build_parser() -> argparse.ArgumentParser:
     checkpoint = commands.add_parser("inspect-checkpoint", help="inspect local safetensors metadata without loading weights")
     checkpoint.add_argument("directory", type=Path)
     checkpoint.add_argument("--output", type=Path, help="write inventory JSON to this path")
+    profile = commands.add_parser("show-profile", help="show the bundled LFM2-700M profile")
+    profile.add_argument("--file", type=Path, default=Path(__file__).resolve().parents[2] / "profiles" / "lfm2_700m.json")
     return parser
 
 
@@ -45,6 +48,8 @@ def main() -> None:
             args.output.parent.mkdir(parents=True, exist_ok=True)
             args.output.write_text(rendered + "\\n", encoding="utf-8")
         print(rendered)
+    elif args.command == "show-profile":
+        print(json.dumps(load_profile(args.file), indent=2))
 
 
 if __name__ == "__main__":
