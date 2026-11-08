@@ -13,7 +13,7 @@ def _write_safetensors(path, tensors):
         (item["data_offsets"][1] for name, item in tensors.items() if name != "__metadata__"),
         default=0,
     )
-    path.write_bytes(struct.pack("<Q", len(header)) + header + b"\\x00" * data_size)
+    path.write_bytes(struct.pack("<Q", len(header)) + header + b"\x00" * data_size)
 
 
 def test_inspect_checkpoint_headers_only(tmp_path):
