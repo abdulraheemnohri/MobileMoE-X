@@ -90,7 +90,9 @@ def _unpack(packed: np.ndarray, count: int, bits: int) -> np.ndarray:
         if offset + bits > 8:
             value |= int(data[byte_index + 1]) << (8 - offset)
         value &= mask
-        if bits > 1 and value & sign_bit:
+        if bits == 1:
+            value = -1 if value else 1
+        elif value & sign_bit:
             value -= 1 << bits
         result[i] = value
         bit_pos += bits
@@ -115,7 +117,7 @@ def quantize_tensor(
     for start in range(0, flat.size, group_size):
         chunk = flat[start : start + group_size]
         max_abs = float(np.max(np.abs(chunk))) if chunk.size else 0.0
-        scale = max_abs / qmax if max_abs else 1.0
+        scale = max_abs / qmax if max_abs else (0.0 if bits == 1 else 1.0)
         scales.append(scale)
         quantized[start : start + chunk.size] = np.clip(
             np.rint(chunk / scale), qmin, qmax
@@ -139,8 +141,8 @@ def dequantize_tensor(artifact: QuantizedTensor) -> np.ndarray:
         raise ValueError("scale count does not match tensor metadata")
     if len(artifact.original_shape) and math.prod(artifact.original_shape) != artifact.original_size:
         raise ValueError("shape does not match original_size")
-    if np.any(~np.isfinite(artifact.scales)) or np.any(artifact.scales <= 0):
-        raise ValueError("scales must be finite and positive")
+    if np.any(~np.isfinite(artifact.scales)) or np.any(artifact.scales < 0):
+        raise ValueError("scales must be finite and non-negative")
     q = _unpack(artifact.packed, artifact.original_size, artifact.bits)
     output = np.empty(artifact.original_size, dtype=np.float32)
     for group, start in enumerate(range(0, artifact.original_size, artifact.group_size)):
