@@ -119,9 +119,12 @@ def quantize_tensor(
         max_abs = float(np.max(np.abs(chunk))) if chunk.size else 0.0
         scale = max_abs / qmax if max_abs else (0.0 if bits == 1 else 1.0)
         scales.append(scale)
-        quantized[start : start + chunk.size] = np.clip(
-            np.rint(chunk / scale), qmin, qmax
-        ).astype(np.int16)
+        if bits == 1:
+            quantized[start : start + chunk.size] = np.sign(chunk).astype(np.int16)
+        else:
+            quantized[start : start + chunk.size] = np.clip(
+                np.rint(chunk / scale), qmin, qmax
+            ).astype(np.int16)
     return QuantizedTensor(
         packed=_pack(quantized, bits),
         scales=np.asarray(scales, dtype=np.float32),
