@@ -30,7 +30,10 @@ Quantize a NumPy tensor saved as `.npy`:
 ```bash
 mobilemoe quantize input.npy output_dir --bits 4 --group-size 128
 mobilemoe inspect output_dir
+mobilemoe inspect-checkpoint ./local-hf-checkpoint --output inventory.json
 ```
+
+`inspect-checkpoint` reads only `config.json`, an optional safetensors index, and shard headers. It does not load tensor payloads into memory. It validates index-to-shard mappings and reports raw configuration fields and heuristic tensor-name categories. Categories are hints, not proof of tensor roles.
 
 The output directory contains packed bytes, per-group scales and a JSON manifest. Original tensors are not modified.
 
