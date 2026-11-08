@@ -4,6 +4,8 @@
 
 The Python reference package accepts a single real-valued NumPy tensor, quantizes it groupwise, packs signed values into a byte stream, stores scales and a versioned JSON manifest, and reconstructs an approximate float32 tensor. It is intended for correctness experiments and format prototyping.
 
+A metadata-only Hugging Face safetensors inspector reads model configuration, optional shard index and shard headers without loading tensor payloads. It validates header bounds and index mappings, and produces a tensor inventory. Tensor role labels are name-based heuristics only; the actual checkpoint architecture and tensor semantics must be reviewed before selecting tensors for quantization.
+
 ## Intended full pipeline
 
 1. Inspect checkpoint configuration, tensor names, shapes, dtypes and license.
