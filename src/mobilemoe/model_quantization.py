@@ -24,7 +24,7 @@ from .quantization import QuantizedTensor, dequantize_tensor, quantize_tensor
 
 FORMAT = "mobilemoe-mini-quantized-v1"
 SUPPORTED_MODEL_BITS = (4, 8)
-_ARRAY_NAME = re.compile(r"t[0-9]{6}_(?:packed|scales|data)\\.npy$")
+_ARRAY_NAME = re.compile(r"^t[0-9]{6}_(?:packed|scales|data)[.]npy$")
 
 
 def _array_bytes(array: np.ndarray) -> bytes:
