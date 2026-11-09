@@ -78,7 +78,14 @@ mobilemoe quantize tensor.npy artifacts/tensor-int4 --bits 4 --group-size 128
 mobilemoe inspect artifacts/tensor-int4
 ```
 
-These are not yet model checkpoint exporters and cannot be loaded by the MiniMoE PyTorch model. The model checkpoint remains ordinary PyTorch weights.
+These generic tensor artifacts remain separate from model export. MiniMoE also has a model-specific INT8/INT4 checkpoint exporter:
+
+```bash
+mobilemoe quantize-model artifacts/minimoe.pt artifacts/minimoe-int8.mmq --bits 8
+mobilemoe quantize-model artifacts/minimoe.pt artifacts/minimoe-int4.mmq --bits 4
+```
+
+Load a model-specific archive in Python with `load_quantized_checkpoint()` from `mobilemoe.model_quantization`. The loader dequantizes weights into the regular PyTorch model; this is not yet low-bit execution and does not reduce runtime weight memory to 4 or 8 bits. The `.mmq` archive is not GGUF, TFLite, LiteRT-LM, or a verified Android runtime format.
 
 ## Design boundaries
 
@@ -93,7 +100,7 @@ These are not yet model checkpoint exporters and cannot be loaded by the MiniMoE
 
 1. MiniMoE training and CPU reference inference.
 2. Checkpoint validation, export format and reproducible evaluation.
-3. Weight-only INT8/INT4 model export and dequantized parity tests.
+3. Model-specific INT8/INT4 export/import with dequantized forward-parity tests (research archive; no low-bit kernels).
 4. ARM64 native inference kernels and Android integration.
 5. Pixel 6 memory, latency, thermal and quality benchmarks.
 

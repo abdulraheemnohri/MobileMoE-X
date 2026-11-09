@@ -18,7 +18,7 @@ dev = ["pytest>=8", "ruff>=0.5", "torch>=2.2"]
 [project.scripts]
 mobilemoe = "mobilemoe.cli:main"
 mobilemoe-train = "mobilemoe.train:main"
-mobilemoe-generate = "mobilemoe.generate:main"
+mobilemoe-generate = "mobilemoe.generate:main"\nmobilemoe-quantize-model = "mobilemoe.model_quantization:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

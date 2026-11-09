@@ -26,6 +26,11 @@ def build_parser() -> argparse.ArgumentParser:
     checkpoint = commands.add_parser("inspect-checkpoint", help="inspect local safetensors metadata without loading weights")
     checkpoint.add_argument("directory", type=Path)
     checkpoint.add_argument("--output", type=Path, help="write inventory JSON to this path")
+    model_quant = commands.add_parser("quantize-model", help="export a MiniMoE checkpoint as model-specific INT4/INT8")
+    model_quant.add_argument("checkpoint", type=Path)
+    model_quant.add_argument("output", type=Path)
+    model_quant.add_argument("--bits", type=int, choices=(4, 8), default=4)
+    model_quant.add_argument("--group-size", type=int, default=128)
     profile = commands.add_parser("show-profile", help="show the bundled LFM2-700M profile")
     profile.add_argument("--file", type=Path, default=Path(__file__).resolve().parent / "data" / "lfm2_700m.json")
     return parser
@@ -48,6 +53,11 @@ def main() -> None:
             args.output.parent.mkdir(parents=True, exist_ok=True)
             args.output.write_text(rendered + "\\n", encoding="utf-8")
         print(rendered)
+    elif args.command == "quantize-model":
+        from .model_quantization import export_quantized_checkpoint
+        print(json.dumps(export_quantized_checkpoint(
+            args.checkpoint, args.output, bits=args.bits, group_size=args.group_size
+        ), indent=2))
     elif args.command == "show-profile":
         print(json.dumps(load_profile(args.file), indent=2))
 
