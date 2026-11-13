@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "name": "LFM2-700M",
+  "source_model": "LiquidAI/LFM2-700M",
+  "runtime_repository": "litert-community/LFM2-700M",
+  "runtime": "LiteRT-LM",
+  "model_family": "LFM2",
+  "architecture": "hybrid_short_convolution_and_grouped_query_attention",
+  "parameters": 742489344,
+  "layers": 16,
+  "convolution_layers": 10,
+  "attention_layers": 6,
+  "context_length": 32768,
+  "vocabulary_size": 65536,
+  "source_precision": "bfloat16",
+  "license_identifier": "lfm1.0",
+  "moe": false,
+  "expert_paging": false,
+  "router_quantization": false,
+  "recommended_generation": {
+    "temperature": 0.3,
+    "min_p": 0.15,
+    "repetition_penalty": 1.05
+  },
+  "status": {
+    "model_profile": "implemented",
+    "community_litert_artifact": "external_repository",
+    "android_runtime_integration": "not_implemented",
+    "pixel_6_benchmark": "not_measured"
+  }
+}
